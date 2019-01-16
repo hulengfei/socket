@@ -45,4 +45,9 @@ public class CodeUtil {
             return null;
         }
     }
+
+    public static void main(String[] args) {
+        String s="0F";
+        System.out.println(encode(hex2byte(s)));
+    }
 }

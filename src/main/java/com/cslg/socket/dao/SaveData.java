@@ -1,13 +1,14 @@
 package com.cslg.socket.dao;
 
 import com.cslg.socket.common.ConnectionHolder;
+import com.cslg.socket.model.ControllableSocketInfo;
 import com.cslg.socket.model.Inverter;
 import com.cslg.socket.model.Load;
+import com.cslg.socket.model.TemperatureSensorInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SaveData {
@@ -112,6 +113,43 @@ public class SaveData {
             e.printStackTrace();
             logger.error(Thread.currentThread().getName() + "存储出现异常", e);
         } finally {
+            closePreparedStatement(preparedStatement);
+        }
+    }
+
+    public static void saveTemperatureSensorInfo(TemperatureSensorInfo temperatureSensorInfo){
+        String sql="insert into tb_temperature_sensor(local, sensor_name, temperature, humidity,flag) values(?,?,?,?,?)";
+        PreparedStatement preparedStatement = null;
+        Connection connection = ConnectionHolder.getCurrentConnection();
+        try {
+            preparedStatement=connection.prepareStatement(sql);
+            preparedStatement.setString(1,temperatureSensorInfo.getLocal());
+            preparedStatement.setString(2,temperatureSensorInfo.getSensorName());
+            preparedStatement.setString(3,temperatureSensorInfo.getTemperature().toString());
+            preparedStatement.setString(4,temperatureSensorInfo.getHumidity().toString());
+            preparedStatement.setInt(5,temperatureSensorInfo.getFlag());
+            preparedStatement.executeUpdate();
+        }catch (SQLException e){
+            e.printStackTrace();
+            logger.error(Thread.currentThread().getName() + "存储出现异常", e);
+        }
+
+    }
+
+    public static void saveControllableSocketInfo(ControllableSocketInfo controllableSocketInfo){
+        String sql="insert into tb_controllable_socket_info(voltage,current,electric_power) values(?,?,?)";
+        PreparedStatement preparedStatement = null;
+        Connection connection = ConnectionHolder.getCurrentConnection();
+        try {
+            preparedStatement=connection.prepareStatement(sql);
+            preparedStatement.setString(1,controllableSocketInfo.getVoltage().toString());
+            preparedStatement.setString(2,controllableSocketInfo.getCurrent().toString());
+            preparedStatement.setString(3,controllableSocketInfo.getElectricPower().toString());
+            preparedStatement.executeUpdate();
+        }catch (SQLException e){
+            e.printStackTrace();
+            logger.error(Thread.currentThread().getName() + "存储出现异常", e);
+        }finally {
             closePreparedStatement(preparedStatement);
         }
     }

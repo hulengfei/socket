@@ -5,6 +5,7 @@ import com.cslg.socket.service.AbstractService;
 import com.cslg.socket.common.Pool;
 import com.cslg.socket.common.Task;
 import com.cslg.socket.dao.JDBC;
+import com.cslg.socket.service.CommandService;
 import com.cslg.socket.utils.CodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +41,31 @@ public class SocketListener implements ServletContextListener {
 
     public static ConcurrentMap<String, Task> clientSignMap = new ConcurrentHashMap<>();
 
+    //受后台控制的硬件设备
+    private static ConcurrentMap<String,Socket> controlledSocketMap=new ConcurrentHashMap<>();
+
     static {
         signMap.put("AA", "com.cslg.socket.service.InverterService");
         signMap.put("AB", "com.cslg.socket.service.LoadService");
         signMap.put("AC", "com.cslg.socket.service.InverterService");
+        //新添加的设备----------------------------------------------------------
+        signMap.put("F0", "com.cslg.socket.service.CommandService");
+        signMap.put("AE", "com.cslg.socket.service.ControllableSocketService");
+        signMap.put("BA", "com.cslg.socket.service.TemperatureSensorService");
+        signMap.put("AD", "com.cslg.socket.service.TemperatureSensorService");
+        signMap.put("AF", "com.cslg.socket.service.TemperatureSensorService");
+    }
+
+    public static ConcurrentMap<String,Socket> getControlledSocketMap(){
+        return controlledSocketMap;
+    }
+    //添加受控设备
+    private void addControlledSocket(String sign,Socket socket){
+        controlledSocketMap.put(sign,socket);
+    }
+    //删除受控设备
+    private void delControlledSocket(String sign){
+        controlledSocketMap.remove(sign);
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -56,7 +78,6 @@ public class SocketListener implements ServletContextListener {
             String name = str.length > 1 ? str[2] : str[0];
             thread.setName("该客户端标识号: " + sign + "--工作线程名称为: " + name);
         }
-
         //TODO
         if(clientSignMap.containsKey(sign)) {
             try {
@@ -74,6 +95,7 @@ public class SocketListener implements ServletContextListener {
     private AbstractService dealSign(Socket socket) {
         byte[] bytes = new byte[1];
         try {
+            //获取设备编号
             socket.getInputStream().read(bytes);
             String sign = CodeUtil.encode(bytes);
             if(signMap.get(sign) == null) {
@@ -82,9 +104,21 @@ public class SocketListener implements ServletContextListener {
             Class<?> cls = Class.forName(signMap.get(sign));
             //getConstructor返回访问权限是public的构造器，getDeclaredConstructor返回所有权限的构造器
             Object object = cls.getConstructor(String.class).newInstance(sign);
+
+            if (sign.equals("AE")){
+                this.addControlledSocket(sign,socket);
+                logger.info("受控插座上线----------------");
+            }
+
+            if (sign.equals("F0")&&object instanceof AbstractService){
+                ((CommandService)object).setSocket(socket);
+                logger.info("web-socket通道建立----------");
+                return (AbstractService) object;
+            }
             if(object instanceof AbstractService) {
                 return (AbstractService) object;
             }
+
         } catch (SocketTimeoutException e) {
             logger.info("read()超时");
             return null;
@@ -129,7 +163,16 @@ public class SocketListener implements ServletContextListener {
     private void start(Socket socket) {
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         logger.info("成功连接到ip为: {}的客户端, time: {}", socket.getInetAddress(), df.format(new Date()));
-        AbstractService service = dealSign(socket);
+        AbstractService service = dealSign(socket);//获取处理该设备的Service
+        if (service.getSign().equals("F0")){
+            try {
+                ((CommandService)service).dealCommand();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            return;
+        }
+
         if(service != null) {
             handleSocket(service, socket);
         }

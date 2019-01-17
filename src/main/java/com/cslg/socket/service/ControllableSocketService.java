@@ -66,7 +66,7 @@ public class ControllableSocketService extends AbstractService<ControllableSocke
                 getInputStream().read(bytes);
                 String data=CodeUtil.encode(bytes);
 
-                if (SocketListener.clientSignMap.containsKey(data)) {
+                if (getSign().equals(data)) {
                     logger.info("心跳标志返回: {}", data);
                     signSum++;
                     continue;

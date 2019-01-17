@@ -39,6 +39,7 @@ public class SocketListener implements ServletContextListener {
 
     private static Map<String, String> signMap = new HashMap<>();
 
+    //当前连接的客户端
     public static ConcurrentMap<String, Task> clientSignMap = new ConcurrentHashMap<>();
 
     //受后台控制的硬件设备

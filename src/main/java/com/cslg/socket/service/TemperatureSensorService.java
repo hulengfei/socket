@@ -94,10 +94,8 @@ public class TemperatureSensorService extends AbstractService<TemperatureSensorI
         if (stringBuilder.length()>0){
             String data=stringBuilder.toString();
             if (!data.startsWith("010304")){
-                System.out.println("数据有误------- "+data);
                 return true;//接受到的数据有误
             }
-//
 //            //设置温度和湿度，（使用伪造数据）
             getObject().setTemperature(conversionTemperatureData(data)/10.0);
             getObject().setHumidity(conversionHumidityData(data)/10.0);
